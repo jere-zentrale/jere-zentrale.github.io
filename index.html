@@ -15,6 +15,7 @@
     button { margin-top: 20px; padding: 10px; font-size: 16px; }
     button:disabled { background: #ccc; }
     .hinweis { margin-top: 10px; font-size: 12px; color: #444; }
+    #signature-pad { border: 1px solid #aaa; display: none; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -66,6 +67,11 @@
   <h3>Bemerkungen</h3>
   <textarea id="bemerkungen"></textarea>
 
+  <!-- Unterschrift -->
+  <button type="button" id="signBtn">Unterschrift</button>
+  <canvas id="signature-pad" width="300" height="150"></canvas>
+  <button type="button" id="clearSig" style="display:none;">Unterschrift löschen</button>
+
   <button id="submitBtn" disabled>Bestätigen</button>
   <div class="hinweis">
     Durch Drücken des Buttons bestätige ich, dass die Überprüfung von mir gewissenhaft und wahrheitsgemäß durchgeführt und dokumentiert wurde.
@@ -74,6 +80,12 @@
   <script>
     const inputs = document.querySelectorAll("input, textarea, select");
     const button = document.getElementById("submitBtn");
+    const signBtn = document.getElementById("signBtn");
+    const signaturePad = document.getElementById("signature-pad");
+    const clearSigBtn = document.getElementById("clearSig");
+
+    let hasSignature = false;
+    let drawing = false;
 
     function checkForm() {
       const fahrzeug = document.getElementById("fahrzeug").value.trim();
@@ -82,7 +94,7 @@
       const datum = document.getElementById("datum").value.trim();
       const beginn = document.querySelector("input[name='beginn']:checked");
 
-      if (fahrzeug && name && kennz && datum && beginn) {
+      if (fahrzeug && name && kennz && datum && beginn && hasSignature) {
         button.disabled = false;
       } else {
         button.disabled = true;
@@ -91,6 +103,35 @@
 
     inputs.forEach(i => i.addEventListener("input", checkForm));
 
+    // Unterschrift öffnen
+    signBtn.addEventListener("click", () => {
+      signaturePad.style.display = "block";
+      clearSigBtn.style.display = "inline-block";
+    });
+
+    // Canvas zeichnen
+    const ctx = signaturePad.getContext("2d");
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+
+    signaturePad.addEventListener("mousedown", e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+    signaturePad.addEventListener("mousemove", e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); hasSignature = true; checkForm(); } });
+    signaturePad.addEventListener("mouseup", () => { drawing = false; });
+    signaturePad.addEventListener("mouseout", () => { drawing = false; });
+
+    // Touch (für Handy)
+    signaturePad.addEventListener("touchstart", e => { e.preventDefault(); drawing = true; ctx.beginPath(); ctx.moveTo(e.touches[0].clientX - signaturePad.offsetLeft, e.touches[0].clientY - signaturePad.offsetTop); });
+    signaturePad.addEventListener("touchmove", e => { e.preventDefault(); if (drawing) { ctx.lineTo(e.touches[0].clientX - signaturePad.offsetLeft, e.touches[0].clientY - signaturePad.offsetTop); ctx.stroke(); hasSignature = true; checkForm(); } });
+    signaturePad.addEventListener("touchend", () => { drawing = false; });
+
+    // Löschen
+    clearSigBtn.addEventListener("click", () => {
+      ctx.clearRect(0, 0, signaturePad.width, signaturePad.height);
+      hasSignature = false;
+      checkForm();
+    });
+
+    // Mailversand
     button.addEventListener("click", () => {
       const fahrzeug = document.getElementById("fahrzeug").value;
       const beginn = document.querySelector("input[name='beginn']:checked").value;
@@ -119,9 +160,11 @@ ${ende.join("\n")}
 
 Bemerkungen:
 ${bemerkungen}
+
+Unterschrift: liegt vor (digital erfasst)
 `;
 
-      const mailto = `mailto:webjere@magenta.de?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
+      const mailto = `mailto:DEINE-MAIL@ADRESSE.DE?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
       window.location.href = mailto;
     });
 
