@@ -8,82 +8,99 @@
   <meta name="theme-color" content="#2b2b2b">
   <style>
     body { font-family: sans-serif; margin: 20px; }
-    label { display:block; margin-top: 10px; }
-    textarea, input, select { width: 100%; padding: 6px; margin-top: 4px; }
+    h2, h3 { margin-top: 20px; }
+    .section { border: 1px solid #aaa; padding: 10px; margin-top: 10px; }
+    label { display: block; margin: 6px 0; }
+    textarea, input { width: 100%; padding: 6px; margin-top: 4px; }
     button { margin-top: 20px; padding: 10px; font-size: 16px; }
     button:disabled { background: #ccc; }
   </style>
 </head>
 <body>
-  <h2>Fahrzeugzustand</h2>
+  <h2>Fahrzeugzustand bei Schichtbeginn</h2>
 
   <label>Name:
     <input type="text" id="name" required>
   </label>
-
   <label>Kennzeichen:
     <input type="text" id="kennzeichen" required>
   </label>
-
   <label>Datum:
     <input type="date" id="datum" required>
   </label>
 
-  <h3>Schichtbeginn</h3>
-  <select id="beginn" required>
-    <option value="">Bitte auswählen...</option>
-    <option>Fahrzeug ist verschmutzt</option>
-    <option>Fahrzeug ohne größere Beanstandungen</option>
-    <option>Fahrzeug hat neue Schäden</option>
-  </select>
+  <div class="section">
+    <label><input type="radio" name="beginn" value="Das Fahrzeug ist außen verschmutzt. Der Innenraum ist verschmutzt." required>
+      Das Fahrzeug ist außen verschmutzt. Der Innenraum ist verschmutzt.</label>
+    <label><input type="radio" name="beginn" value="Das Fahrzeug ist ohne größere Beanstandungen für den Dienst einsetzbar.">
+      Das Fahrzeug ist ohne größere Beanstandungen für den Dienst einsetzbar.</label>
+    <label><input type="radio" name="beginn" value="Das Fahrzeug hat neue Schäden. Bitte skizzieren und beschreiben.">
+      Das Fahrzeug hat neue Schäden. Bitte skizzieren und beschreiben.</label>
+    <textarea id="schadenbeschreibung" placeholder="Beschreibung/Skizze"></textarea>
+  </div>
 
-  <h3>Schichtende</h3>
-  <select id="ende" required>
-    <option value="">Bitte auswählen...</option>
-    <option>Tankfüllung ausreichend</option>
-    <option>Keine neuen Gebrauchsspuren</option>
-    <option>Schaden entstanden und gemeldet</option>
-    <option>Fehlermeldungen vorhanden</option>
-  </select>
+  <h2>Fahrzeugzustand bei Schichtende</h2>
+  <div class="section">
+    <label><input type="checkbox" id="ende1" value="Tankfüllung ist ausreichend (mindestens 150km).">
+      Tankfüllung ist ausreichend (mindestens 150km).</label>
+    <label><input type="checkbox" id="ende2" value="Das Fahrzeug weist keine neuen Gebrauchsspuren im Inneren/Karosserie auf.">
+      Das Fahrzeug weist keine neuen Gebrauchsspuren im Inneren/Karosserie auf.</label>
+    <label><input type="checkbox" id="ende3" value="Am Fahrzeug ist ein Schaden entstanden und habe diesen gemeldet.">
+      Am Fahrzeug ist ein Schaden entstanden und habe diesen gemeldet.</label>
+    <label><input type="checkbox" id="ende4" value="Das Fahrzeug hat Fehlermeldungen ausgewiesen – bitte prüfen!">
+      Das Fahrzeug hat Fehlermeldungen ausgewiesen – bitte prüfen!</label>
+  </div>
 
-  <label>Bemerkungen:
-    <textarea id="bemerkungen"></textarea>
-  </label>
+  <h3>Bemerkungen</h3>
+  <textarea id="bemerkungen"></textarea>
 
   <button id="submitBtn" disabled>Bestätigen</button>
 
   <script>
-    const inputs = document.querySelectorAll("input, select, textarea");
+    const inputs = document.querySelectorAll("input, textarea");
     const button = document.getElementById("submitBtn");
 
     function checkForm() {
-      let filled = true;
-      inputs.forEach(i => {
-        if (i.hasAttribute("required") && !i.value.trim()) {
-          filled = false;
-        }
-      });
-      button.disabled = !filled;
+      const name = document.getElementById("name").value.trim();
+      const kennz = document.getElementById("kennzeichen").value.trim();
+      const datum = document.getElementById("datum").value.trim();
+      const beginn = document.querySelector("input[name='beginn']:checked");
+
+      if (name && kennz && datum && beginn) {
+        button.disabled = false;
+      } else {
+        button.disabled = true;
+      }
     }
 
     inputs.forEach(i => i.addEventListener("input", checkForm));
 
     button.addEventListener("click", () => {
-      const body = `
-Fahrzeugcheck
+      const beginn = document.querySelector("input[name='beginn']:checked").value;
+      const schaden = document.getElementById("schadenbeschreibung").value;
+      const bemerkungen = document.getElementById("bemerkungen").value;
 
+      let ende = [];
+      ["ende1","ende2","ende3","ende4"].forEach(id => {
+        const box = document.getElementById(id);
+        if (box.checked) ende.push(box.value);
+      });
+
+      const body = `
+Fahrzeugzustand bei Schichtbeginn
 Name: ${document.getElementById("name").value}
 Kennzeichen: ${document.getElementById("kennzeichen").value}
 Datum: ${document.getElementById("datum").value}
 
 --- Schichtbeginn ---
-${document.getElementById("beginn").value}
+${beginn}
+${schaden ? "Schaden: " + schaden : ""}
 
 --- Schichtende ---
-${document.getElementById("ende").value}
+${ende.join("\n")}
 
 Bemerkungen:
-${document.getElementById("bemerkungen").value}
+${bemerkungen}
 `;
 
       const mailto = `mailto:jensreichardtchemnitz@t-online.de?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
