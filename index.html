@@ -11,13 +11,25 @@
     h2, h3 { margin-top: 20px; }
     .section { border: 1px solid #aaa; padding: 10px; margin-top: 10px; }
     label { display: block; margin: 6px 0; }
-    textarea, input { width: 100%; padding: 6px; margin-top: 4px; }
+    textarea, input, select { width: 100%; padding: 6px; margin-top: 4px; }
     button { margin-top: 20px; padding: 10px; font-size: 16px; }
     button:disabled { background: #ccc; }
+    .hinweis { margin-top: 10px; font-size: 12px; color: #444; }
   </style>
 </head>
 <body>
   <h2>Fahrzeugzustand bei Schichtbeginn</h2>
+
+  <label>Fahrzeug:
+    <select id="fahrzeug" required>
+      <option value="">Bitte auswählen...</option>
+      <option value="T36">T36</option>
+      <option value="T37">T37</option>
+      <option value="T38">T38</option>
+      <option value="T39">T39</option>
+      <option value="T40">T40</option>
+    </select>
+  </label>
 
   <label>Name:
     <input type="text" id="name" required>
@@ -55,18 +67,22 @@
   <textarea id="bemerkungen"></textarea>
 
   <button id="submitBtn" disabled>Bestätigen</button>
+  <div class="hinweis">
+    Durch Drücken des Buttons bestätige ich, dass die Überprüfung von mir gewissenhaft und wahrheitsgemäß durchgeführt und dokumentiert wurde.
+  </div>
 
   <script>
-    const inputs = document.querySelectorAll("input, textarea");
+    const inputs = document.querySelectorAll("input, textarea, select");
     const button = document.getElementById("submitBtn");
 
     function checkForm() {
+      const fahrzeug = document.getElementById("fahrzeug").value.trim();
       const name = document.getElementById("name").value.trim();
       const kennz = document.getElementById("kennzeichen").value.trim();
       const datum = document.getElementById("datum").value.trim();
       const beginn = document.querySelector("input[name='beginn']:checked");
 
-      if (name && kennz && datum && beginn) {
+      if (fahrzeug && name && kennz && datum && beginn) {
         button.disabled = false;
       } else {
         button.disabled = true;
@@ -76,6 +92,7 @@
     inputs.forEach(i => i.addEventListener("input", checkForm));
 
     button.addEventListener("click", () => {
+      const fahrzeug = document.getElementById("fahrzeug").value;
       const beginn = document.querySelector("input[name='beginn']:checked").value;
       const schaden = document.getElementById("schadenbeschreibung").value;
       const bemerkungen = document.getElementById("bemerkungen").value;
@@ -88,6 +105,7 @@
 
       const body = `
 Fahrzeugzustand bei Schichtbeginn
+Fahrzeug: ${fahrzeug}
 Name: ${document.getElementById("name").value}
 Kennzeichen: ${document.getElementById("kennzeichen").value}
 Datum: ${document.getElementById("datum").value}
@@ -103,11 +121,10 @@ Bemerkungen:
 ${bemerkungen}
 `;
 
-      const mailto = `mailto:jensreichardtchemnitz@t-online.de?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
+      const mailto = `mailto:webjere@magenta.de?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
       window.location.href = mailto;
     });
 
-    // Service Worker registrieren
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js");
     }
