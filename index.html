@@ -15,7 +15,7 @@
     button { margin-top: 20px; padding: 10px; font-size: 16px; }
     button:disabled { background: #ccc; }
     .hinweis { margin-top: 10px; font-size: 12px; color: #444; }
-    #signature-pad { border: 1px solid #aaa; display: none; margin-top: 10px; }
+    #signature-pad { border: 1px solid #aaa; display: none; margin-top: 10px; touch-action: none; }
   </style>
 </head>
 <body>
@@ -86,6 +86,9 @@
 
     let hasSignature = false;
     let drawing = false;
+    const ctx = signaturePad.getContext("2d");
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
 
     function checkForm() {
       const fahrzeug = document.getElementById("fahrzeug").value.trim();
@@ -103,26 +106,60 @@
 
     inputs.forEach(i => i.addEventListener("input", checkForm));
 
-    // Unterschrift öffnen
+    // Unterschrift anzeigen
     signBtn.addEventListener("click", () => {
       signaturePad.style.display = "block";
       clearSigBtn.style.display = "inline-block";
     });
 
-    // Canvas zeichnen
-    const ctx = signaturePad.getContext("2d");
-    ctx.strokeStyle = "#000";
-    ctx.lineWidth = 2;
+    function getPos(e) {
+      let rect = signaturePad.getBoundingClientRect();
+      if (e.touches) {
+        return {
+          x: e.touches[0].clientX - rect.left,
+          y: e.touches[0].clientY - rect.top
+        };
+      } else {
+        return {
+          x: e.offsetX,
+          y: e.offsetY
+        };
+      }
+    }
 
-    signaturePad.addEventListener("mousedown", e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
-    signaturePad.addEventListener("mousemove", e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); hasSignature = true; checkForm(); } });
-    signaturePad.addEventListener("mouseup", () => { drawing = false; });
-    signaturePad.addEventListener("mouseout", () => { drawing = false; });
+    function startDraw(e) {
+      e.preventDefault();
+      drawing = true;
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    }
 
-    // Touch (für Handy)
-    signaturePad.addEventListener("touchstart", e => { e.preventDefault(); drawing = true; ctx.beginPath(); ctx.moveTo(e.touches[0].clientX - signaturePad.offsetLeft, e.touches[0].clientY - signaturePad.offsetTop); });
-    signaturePad.addEventListener("touchmove", e => { e.preventDefault(); if (drawing) { ctx.lineTo(e.touches[0].clientX - signaturePad.offsetLeft, e.touches[0].clientY - signaturePad.offsetTop); ctx.stroke(); hasSignature = true; checkForm(); } });
-    signaturePad.addEventListener("touchend", () => { drawing = false; });
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      hasSignature = true;
+      checkForm();
+    }
+
+    function endDraw(e) {
+      e.preventDefault();
+      drawing = false;
+    }
+
+    // Maus
+    signaturePad.addEventListener("mousedown", startDraw);
+    signaturePad.addEventListener("mousemove", draw);
+    signaturePad.addEventListener("mouseup", endDraw);
+    signaturePad.addEventListener("mouseout", endDraw);
+
+    // Touch
+    signaturePad.addEventListener("touchstart", startDraw);
+    signaturePad.addEventListener("touchmove", draw);
+    signaturePad.addEventListener("touchend", endDraw);
 
     // Löschen
     clearSigBtn.addEventListener("click", () => {
@@ -144,6 +181,9 @@
         if (box.checked) ende.push(box.value);
       });
 
+      // Unterschrift als Base64-Bild
+      const signatureImage = signaturePad.toDataURL("image/png");
+
       const body = `
 Fahrzeugzustand bei Schichtbeginn
 Fahrzeug: ${fahrzeug}
@@ -161,10 +201,11 @@ ${ende.join("\n")}
 Bemerkungen:
 ${bemerkungen}
 
-Unterschrift: liegt vor (digital erfasst)
+Unterschrift (PNG, Base64):
+${signatureImage}
 `;
 
-      const mailto = `mailto:DEINE-MAIL@ADRESSE.DE?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
+      const mailto = `mailto:webjere@magenta.de?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
       window.location.href = mailto;
     });
 
