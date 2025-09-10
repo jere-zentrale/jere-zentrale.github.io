@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fahrzeugcheck</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2b2b2b">
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    label { display:block; margin-top: 10px; }
+    textarea, input, select { width: 100%; padding: 6px; margin-top: 4px; }
+    button { margin-top: 20px; padding: 10px; font-size: 16px; }
+    button:disabled { background: #ccc; }
+  </style>
+</head>
+<body>
+  <h2>Fahrzeugzustand</h2>
+
+  <label>Name:
+    <input type="text" id="name" required>
+  </label>
+
+  <label>Kennzeichen:
+    <input type="text" id="kennzeichen" required>
+  </label>
+
+  <label>Datum:
+    <input type="date" id="datum" required>
+  </label>
+
+  <h3>Schichtbeginn</h3>
+  <select id="beginn" required>
+    <option value="">Bitte auswählen...</option>
+    <option>Fahrzeug ist verschmutzt</option>
+    <option>Fahrzeug ohne größere Beanstandungen</option>
+    <option>Fahrzeug hat neue Schäden</option>
+  </select>
+
+  <h3>Schichtende</h3>
+  <select id="ende" required>
+    <option value="">Bitte auswählen...</option>
+    <option>Tankfüllung ausreichend</option>
+    <option>Keine neuen Gebrauchsspuren</option>
+    <option>Schaden entstanden und gemeldet</option>
+    <option>Fehlermeldungen vorhanden</option>
+  </select>
+
+  <label>Bemerkungen:
+    <textarea id="bemerkungen"></textarea>
+  </label>
+
+  <button id="submitBtn" disabled>Bestätigen</button>
+
+  <script>
+    const inputs = document.querySelectorAll("input, select, textarea");
+    const button = document.getElementById("submitBtn");
+
+    function checkForm() {
+      let filled = true;
+      inputs.forEach(i => {
+        if (i.hasAttribute("required") && !i.value.trim()) {
+          filled = false;
+        }
+      });
+      button.disabled = !filled;
+    }
+
+    inputs.forEach(i => i.addEventListener("input", checkForm));
+
+    button.addEventListener("click", () => {
+      const body = `
+Fahrzeugcheck
+
+Name: ${document.getElementById("name").value}
+Kennzeichen: ${document.getElementById("kennzeichen").value}
+Datum: ${document.getElementById("datum").value}
+
+--- Schichtbeginn ---
+${document.getElementById("beginn").value}
+
+--- Schichtende ---
+${document.getElementById("ende").value}
+
+Bemerkungen:
+${document.getElementById("bemerkungen").value}
+`;
+
+      const mailto = `mailto:jensreichardtchemnitz@t-online.de?subject=Fahrzeugcheck&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    });
+
+    // Service Worker registrieren
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+  </script>
+</body>
+</html>
